@@ -181,17 +181,29 @@ def restart_agents(agent_list=None):
                                       none_msg='Restart command was not sent to any agent'
                                       )
 
+    import time,logging
+    logger = logging.getLogger('wazuh')
+    start = time.time()
+    logger.info(f"Before get_agents_info: {start}")
     system_agents = get_agents_info()
+    logger.info(f"After get_agents_info: {time.time() - start}")
+
+    start_loop = time.time()
+    logger.info(f"Before loop: {start_loop}")
     for agent_id in agent_list:
         try:
             if agent_id not in system_agents:
                 raise WazuhResourceNotFound(1701)
             if agent_id == "000":
                 raise WazuhError(1703)
+            start = time.time()
+            logger.info(f"Before agent.restart: {start}")
             Agent(agent_id).restart()
+            logger.info(f"After agent.restart: {time.time() - start}")
             result.affected_items.append(agent_id)
         except WazuhException as e:
             result.add_failed_item(id_=agent_id, error=e)
+    logger.info(f"After loop: {time.time() - start_loop}")
 
     result.total_affected_items = len(result.affected_items)
     result.affected_items.sort(key=int)
