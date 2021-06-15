@@ -14,6 +14,33 @@ from wazuh.core.cluster.dapi.dapi import DistributedAPI
 logger = logging.getLogger('wazuh-api')
 
 
+async def delete_rootcheck(request, pretty: bool = False, wait_for_complete: bool = False, agent_id: str = None):
+    """Clear an agent's rootcheck database.
+
+    Parameters
+    ----------
+    pretty : bool
+        Show results in human-readable format.
+    wait_for_complete : bool
+        Disable timeout response.
+    agent_id : str
+        ID of the agent with the rootcheck database to delete.
+    """
+    f_kwargs = {'agent_list': [agent_id]}
+
+    dapi = DistributedAPI(f=rootcheck.clear,
+                          f_kwargs=remove_nones_to_dict(f_kwargs),
+                          request_type='distributed_master',
+                          is_async=False,
+                          wait_for_complete=wait_for_complete,
+                          logger=logger,
+                          rbac_permissions=request['token_info']['rbac_policies']
+                          )
+    data = raise_if_exc(await dapi.distribute_function())
+
+    return web.json_response(data=data, status=200, dumps=prettify if pretty else dumps)
+
+
 async def put_rootcheck(request, pretty=False, wait_for_complete=False, agents_list='*'):
     """Run rootcheck scan over the agent_ids.
 
